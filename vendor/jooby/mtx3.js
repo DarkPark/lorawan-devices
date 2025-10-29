@@ -1332,7 +1332,7 @@ function decodeDownlink ( input ) {
     const setSpecialOperation$1 = 0x64;
     const getMagneticFieldThreshold$1 = 0x6d;
     const getHalfHourEnergies$1 = 0x6f;
-    const getBuildVersion$1 = 0x70;
+    const getBv$1 = 0x70;
     const getOperatorParametersExtended3$1 = 0x71;
     const setOperatorParametersExtended3$1 = 0x72;
     const setDemandParameters = 0x74;
@@ -1343,7 +1343,7 @@ function decodeDownlink ( input ) {
     var downlinkIds$1 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         activateRatePlan: activateRatePlan$1,
-        getBuildVersion: getBuildVersion$1,
+        getBv: getBv$1,
         getCorrectTime: getCorrectTime$1,
         getCriticalEvent: getCriticalEvent$1,
         getCurrentStatusMeter: getCurrentStatusMeter$1,
@@ -1428,8 +1428,8 @@ function decodeDownlink ( input ) {
       return toBytes$2j(id$2g, buffer.data);
     };
 
-    const id$2f = getBuildVersion$1;
-    commandNames$1[getBuildVersion$1];
+    const id$2f = getBv$1;
+    commandNames$1[getBv$1];
     const maxSize$1U = 0;
     const fromBytes$2h = bytes => {
       if (bytes.length !== maxSize$1U) {
@@ -1730,7 +1730,7 @@ function decodeDownlink ( input ) {
         __proto__: null,
         activateRatePlan: activateRatePlan$1,
         errorResponse: errorResponse$1,
-        getBuildVersion: getBuildVersion$1,
+        getBv: getBv$1,
         getCorrectTime: getCorrectTime$1,
         getCriticalEvent: getCriticalEvent$1,
         getCurrentStatusMeter: getCurrentStatusMeter$1,
@@ -2750,7 +2750,7 @@ function decodeDownlink ( input ) {
     const setSpecialOperation = 0x64;
     const getMagneticFieldThreshold = 0x6d;
     const getHalfHourEnergies = 0x6f;
-    const getBuildVersion = 0x70;
+    const getBv = 0x70;
     const getOperatorParametersExtended3 = 0x71;
     const setOperatorParametersExtended3 = 0x72;
     const setOperatorParametersExtended4$1 = 0x74;
@@ -2761,7 +2761,7 @@ function decodeDownlink ( input ) {
     var downlinkIds = /*#__PURE__*/Object.freeze({
         __proto__: null,
         activateRatePlan: activateRatePlan,
-        getBuildVersion: getBuildVersion,
+        getBv: getBv,
         getCorrectTime: getCorrectTime,
         getCriticalEvent: getCriticalEvent,
         getCurrentStatusMeter: getCurrentStatusMeter,
@@ -3466,7 +3466,7 @@ function decodeDownlink ( input ) {
         __proto__: null,
         activateRatePlan: activateRatePlan,
         errorResponse: errorResponse,
-        getBuildVersion: getBuildVersion,
+        getBv: getBv,
         getCorrectTime: getCorrectTime,
         getCriticalEvent: getCriticalEvent,
         getCurrentStatusMeter: getCurrentStatusMeter,
@@ -4042,7 +4042,7 @@ function decodeDownlink ( input ) {
           month: date0 << 3 & 0x0f | date1 >> 5,
           date: date1 & 0x1f
         },
-        demandParam: buffer.getUint8(),
+        demandType: buffer.getUint8(),
         firstIndex: buffer.getUint16(),
         count: buffer.getUint8(),
         period: buffer.getUint8()
@@ -4053,7 +4053,7 @@ function decodeDownlink ( input ) {
       const date1 = parameters.date.month << 5 & 0xe0 | parameters.date.date & 0x1f;
       buffer.setUint8(date0);
       buffer.setUint8(date1);
-      buffer.setUint8(parameters.demandParam);
+      buffer.setUint8(parameters.demandType);
       buffer.setUint16(parameters.firstIndex);
       buffer.setUint8(parameters.count);
       buffer.setUint8(parameters.period);
@@ -4632,30 +4632,22 @@ function decodeDownlink ( input ) {
         toBytes: toBytes$19
     });
 
-    const id$17 = getBuildVersion$1;
-    commandNames[getBuildVersion$1];
+    const id$17 = getBv$1;
+    commandNames[getBv$1];
     const maxSize$T = 6;
     const fromBytes$18 = bytes => {
       if (bytes.length !== maxSize$T) {
         throw new Error(`Wrong buffer size: ${bytes.length}.`);
       }
-      const [date, month, year, n3, n2, n1] = bytes;
       return {
-        date: {
-          date,
-          month,
-          year
-        },
-        version: `${n3}.${n2}.${n1}`
+        vector: bytes
       };
     };
     const toBytes$18 = parameters => {
       const {
-        date,
-        version
+        vector
       } = parameters;
-      const versionParts = version.split('.').map(part => parseInt(part, 10));
-      return toBytes$2j(id$17, [date.date, date.month, date.year, ...versionParts]);
+      return toBytes$2j(id$17, vector);
     };
 
     const id$16 = getCorrectTime$1;
@@ -5491,6 +5483,7 @@ function decodeDownlink ( input ) {
 
     const id$o = getDemand$1;
     uplinkNames[getDemand$1];
+    const NO_VALUE = 0xffff;
     const fromBytes$q = bytes => {
       if (!bytes || bytes.length < maxSize$1b) {
         throw new Error('Invalid uplink GetDemand byte length.');
@@ -5500,7 +5493,10 @@ function decodeDownlink ( input ) {
       if (bytes.length !== maxSize$1b + 2 * parameters.count) {
         throw new Error('Invalid uplink GetDemand demands byte length.');
       }
-      const demands = new Array(parameters.count).fill(0).map(() => buffer.getUint16());
+      const demands = new Array(parameters.count).fill(0).map(() => {
+        const value = buffer.getUint16();
+        return value === NO_VALUE ? null : value;
+      });
       return {
         ...parameters,
         demands
@@ -5509,7 +5505,7 @@ function decodeDownlink ( input ) {
     const toBytes$q = parameters => {
       const buffer = new BinaryBuffer(maxSize$1b + parameters.count * 2, false);
       setDemand(buffer, parameters);
-      parameters.demands.forEach(value => buffer.setUint16(value));
+      parameters.demands.forEach(value => buffer.setUint16(value === null ? NO_VALUE : value));
       return toBytes$2j(id$o, buffer.data);
     };
 

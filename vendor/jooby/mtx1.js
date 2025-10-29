@@ -1593,7 +1593,7 @@ function decodeDownlink ( input ) {
           month: date0 << 3 & 0x0f | date1 >> 5,
           date: date1 & 0x1f
         },
-        energyType: buffer.getUint8(),
+        demandType: buffer.getUint8(),
         firstIndex: buffer.getUint16(),
         count: buffer.getUint8(),
         period: buffer.getUint8()
@@ -1604,7 +1604,7 @@ function decodeDownlink ( input ) {
       const date1 = parameters.date.month << 5 & 0xe0 | parameters.date.date & 0x1f;
       buffer.setUint8(date0);
       buffer.setUint8(date1);
-      buffer.setUint8(parameters.energyType);
+      buffer.setUint8(parameters.demandType);
       buffer.setUint16(parameters.firstIndex);
       buffer.setUint8(parameters.count);
       buffer.setUint8(parameters.period);
@@ -1755,7 +1755,7 @@ function decodeDownlink ( input ) {
     const setSpecialOperation = 0x64;
     const getMagneticFieldThreshold = 0x6d;
     const getHalfHourEnergies = 0x6f;
-    const getBuildVersion = 0x70;
+    const getBv = 0x70;
     const getOperatorParametersExtended3 = 0x71;
     const setOperatorParametersExtended3 = 0x72;
     const setDemandParameters = 0x74;
@@ -1766,7 +1766,7 @@ function decodeDownlink ( input ) {
     var downlinkIds = /*#__PURE__*/Object.freeze({
         __proto__: null,
         activateRatePlan: activateRatePlan,
-        getBuildVersion: getBuildVersion,
+        getBv: getBv,
         getCorrectTime: getCorrectTime,
         getCriticalEvent: getCriticalEvent,
         getCurrentStatusMeter: getCurrentStatusMeter,
@@ -1851,8 +1851,8 @@ function decodeDownlink ( input ) {
       return toBytes$27(id$24, buffer.data);
     };
 
-    const id$23 = getBuildVersion;
-    downlinkNames[getBuildVersion];
+    const id$23 = getBv;
+    downlinkNames[getBv];
     const maxSize$1F = 0;
     const fromBytes$25 = bytes => {
       if (bytes.length !== maxSize$1F) {
@@ -2258,7 +2258,7 @@ function decodeDownlink ( input ) {
         __proto__: null,
         activateRatePlan: activateRatePlan,
         errorResponse: errorResponse,
-        getBuildVersion: getBuildVersion,
+        getBv: getBv,
         getCorrectTime: getCorrectTime,
         getCriticalEvent: getCriticalEvent,
         getCurrentStatusMeter: getCurrentStatusMeter,
@@ -3642,30 +3642,22 @@ function decodeDownlink ( input ) {
       return toBytes$27(id$12, buffer.data);
     };
 
-    const id$11 = getBuildVersion;
-    uplinkNames[getBuildVersion];
+    const id$11 = getBv;
+    uplinkNames[getBv];
     const maxSize$O = 6;
     const fromBytes$12 = bytes => {
       if (bytes.length !== maxSize$O) {
         throw new Error(`Wrong buffer size: ${bytes.length}.`);
       }
-      const [date, month, year, n3, n2, n1] = bytes;
       return {
-        date: {
-          date,
-          month,
-          year
-        },
-        version: `${n3}.${n2}.${n1}`
+        vector: bytes
       };
     };
     const toBytes$12 = parameters => {
       const {
-        date,
-        version
+        vector
       } = parameters;
-      const versionParts = version.split('.').map(part => parseInt(part, 10));
-      return toBytes$27(id$11, [date.date, date.month, date.year, ...versionParts]);
+      return toBytes$27(id$11, vector);
     };
 
     const id$10 = getCorrectTime;
@@ -4071,14 +4063,14 @@ function decodeDownlink ( input ) {
         throw new Error('Invalid uplink GetDemand demands byte length.');
       }
       const demandsBytes = new Array(parameters.count).fill(0).map(() => buffer.getUint16());
-      const isEnergiesDemand = parameters.energyType === A_PLUS || parameters.energyType === A_MINUS;
+      const isEnergiesDemand = parameters.demandType === A_PLUS || parameters.demandType === A_MINUS;
       parameters.demands = isEnergiesDemand ? energyFromBinary(demandsBytes, parameters.firstIndex, parameters.period) : voltageFromBinary(demandsBytes, parameters.firstIndex, parameters.period);
       return parameters;
     };
     const toBytes$Q = parameters => {
       const buffer = new BinaryBuffer(maxSize$1v + parameters.count * 2, false);
       setDemand(buffer, parameters);
-      if (parameters.energyType === A_PLUS || parameters.energyType === A_MINUS) {
+      if (parameters.demandType === A_PLUS || parameters.demandType === A_MINUS) {
         energyToBinary(parameters.demands).forEach(value => buffer.setUint16(value));
       } else {
         voltageToBinary(parameters.demands).forEach(value => buffer.setUint16(value));
